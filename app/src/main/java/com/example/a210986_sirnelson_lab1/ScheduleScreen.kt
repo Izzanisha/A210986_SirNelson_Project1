@@ -1,123 +1,277 @@
 package com.example.a210986_sirnelson_lab1
 
-import androidx.compose.foundation.Image
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.a210986_sirnelson_lab1.ui.theme.A210986_SirNelson_Lab1Theme
-import com.example.a210986_sirnelson_lab1.R
+import androidx.compose.ui.graphics.Color
 
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.*
+
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.tooling.preview.Preview
+
+import com.example.a210986_sirnelson_lab1.ui.theme.*
+
+/* =========================
+   NEXT PICKUP LOGIC
+   ========================= */
+fun getNextPickupData(): Triple<String, String, Long> {
+
+    val calendar = Calendar.getInstance()
+    val today = calendar.get(Calendar.DAY_OF_WEEK)
+
+    val schedule = listOf(
+        Calendar.MONDAY to "General Waste",
+        Calendar.WEDNESDAY to "Recycling",
+        Calendar.FRIDAY to "Garden & Bulky"
+    )
+
+    var minDiff = 7
+    var nextType = ""
+
+    for ((day, type) in schedule) {
+        var diff = day - today
+        if (diff <= 0) diff += 7
+
+        if (diff < minDiff) {
+            minDiff = diff
+            nextType = type
+        }
+    }
+
+    calendar.add(Calendar.DAY_OF_MONTH, minDiff)
+
+    val format = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+    val date = format.format(calendar.time)
+
+    return Triple(date, nextType, minDiff.toLong())
+}
+
+/* =========================
+   COUNTDOWN
+   ========================= */
 @Composable
-fun ScheduleScreen(viewModel: TrashViewModel) {
-    val trashInfo = viewModel.trashInfo.observeAsState()
-    val reports = viewModel.reportData.observeAsState(emptyList()) // list of reports
+fun CountdownText(daysLeft: Long) {
 
-    Scaffold { padding ->
-        Box(
+    var seconds by remember { mutableLongStateOf(daysLeft * 86400) }
+
+    LaunchedEffect(Unit) {
+        while (seconds > 0) {
+            delay(1000)
+            seconds--
+        }
+    }
+
+    val days = seconds / 86400
+    val text = if (days == 1L) "Tomorrow" else "In $days days"
+
+    Text(text, fontWeight = FontWeight.SemiBold)
+}
+
+/* =========================
+   NEXT PICKUP CARD
+   ========================= */
+@Composable
+fun AnimatedNextCard(area: String, type: String, date: String, daysLeft: Long) {
+
+    var expanded by remember { mutableStateOf(false) }
+
+    val radius by animateDpAsState(
+        targetValue = if (expanded) 28.dp else 16.dp,
+        label = "corner"
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
+            .animateContentSize(),
+        shape = RoundedCornerShape(radius),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+
+        Column(Modifier.padding(16.dp)) {
+
+            Text("Next Pickup", fontWeight = FontWeight.Bold)
+
+            Text(type)
+            Text(date)
+
+            CountdownText(daysLeft)
+
+            Text("📍 $area")
+
+            if (expanded) {
+                Divider()
+                Text("Put bins outside before 6 AM")
+                Text("Check Reminder tab for alerts")
+            }
+        }
+    }
+}
+
+/* =========================
+   MAIN SCREEN
+   ========================= */
+@Composable
+fun ScheduleScreen(navController: NavHostController, viewModel: TrashViewModel) {
+
+    val userData = viewModel.userData.observeAsState()
+    val reports = viewModel.reportData.observeAsState(emptyList())
+
+    val area = userData.value?.area ?: "Not selected"
+
+    val (nextDate, nextType, daysLeft) = getNextPickupData()
+
+    LaunchedEffect(nextDate, nextType) {
+        viewModel.syncReminderWithSchedule(nextType, nextDate)
+    }
+
+    Scaffold(
+        topBar = { MPKJHeaderBar("Collection Schedule") },
+        bottomBar = { BottomNavigationBar(navController) }
+    ) { padding ->
+
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 🔑 Bright background image (same style as Home)
-            Image(
-                painter = painterResource(id = R.drawable.trashbackground),
-                contentDescription = "Background",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                alpha = 0.06f // keep it subtle and bright
+
+            /* ✅ BACK BUTTON */
+            Row(
+                modifier = Modifier.clickable {
+                    navController.navigate("home")
+                },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Back")
+            }
+
+            Text("📅 Collection Schedule", style = MaterialTheme.typography.headlineSmall)
+
+            /* ✅ NEXT PICKUP */
+            AnimatedNextCard(area, nextType, nextDate, daysLeft)
+
+            /* ✅ WEEKLY SCHEDULE (ALL GREEN NOW ✅) */
+            Text("♻️ Weekly Schedule", style = MaterialTheme.typography.titleMedium)
+
+            val weekly = listOf(
+                "Monday" to "General Waste",
+                "Wednesday" to "Recycling",
+                "Friday" to "Garden & Bulky"
             )
 
-            // Overlay content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                // 🔑 Main heading (bold, large)
-                Text("Upcoming Collection Schedule", style = MaterialTheme.typography.headlineLarge)
+            weekly.forEach { (day, type) ->
 
-                // Show area + next collection date
-                trashInfo.value?.let { info ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                    ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text("📍 Area: ${info.area}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            Text("📅 Next Collection Date: ${info.nextCollectionDate}", color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            Text("ℹ️ Please place bins outside by 6AM", color = MaterialTheme.colorScheme.onPrimaryContainer)
-                        }
-                    }
-                } ?: Text("No area selected yet.")
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // ✅ Weekly waste type schedule
-                Text("Weekly Waste Collection", style = MaterialTheme.typography.titleLarge)
-
-                val schedule = listOf(
-                    Triple("Monday", "General Waste", "Food scraps, packaging, diapers"),
-                    Triple("Wednesday", "Recycling", "Paper, cardboard, bottles, cans, glass"),
-                    Triple("Friday", "Garden & Bulky Waste", "Grass clippings, branches, old furniture")
-                )
-
-                schedule.forEachIndexed { index, (day, type, examples) ->
-                    val bgColor = if (index % 2 == 0) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.tertiaryContainer
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        colors = CardDefaults.cardColors(containerColor = bgColor)
-                    ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text("📅 $day", style = MaterialTheme.typography.titleMedium)
-                            Text("Type: $type")
-                            Text("Examples: $examples")
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Show reported issues if available
-                if (reports.value.isNotEmpty()) {
-                    Text("Reported Issues", style = MaterialTheme.typography.titleLarge)
-                    reports.value.forEachIndexed { index, report ->
-                        val bgColor = if (index % 2 == 0) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.tertiaryContainer
-                        Card(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            colors = CardDefaults.cardColors(containerColor = bgColor)
-                        ) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text("⚠️ Report #${index + 1}", style = MaterialTheme.typography.titleMedium)
-                                Text("Type: ${report.issueType}")
-                                Text("Details: ${report.description}")
-                                Text("Status: ${report.status}")
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // ✅ Contact info card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
                 ) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text("📞 Contact MPKJ", style = MaterialTheme.typography.titleLarge)
-                        Text("Address: Majlis Perbandaran Kajang, Menara MPKj Jalan Cempaka Putih, Off Jalan Semenyih, 43000 Kajang, Selangor")
-                        Text("Main Line: 03-87377899 / 87330798")
-                        Text("Fax: 03-87377897")
-                        Text("Hotline: 1-800-88-6755")
-                        Text("Email (complaints): aduan@mpkj.gov.my")
-                        Text("Portal feedback: webmaster@mpkj.gov.my")
+
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Icon(Icons.Default.Delete, null)
+
+                        Spacer(Modifier.width(12.dp))
+
+                        Column {
+                            Text(day, fontWeight = FontWeight.Bold)
+                            Text(type)
+                        }
+                    }
+                }
+            }
+
+            /* ✅ ✅ REPORT SECTION */
+            if (reports.value.isNotEmpty()) {
+
+                Text("🚨 Reported Issues", style = MaterialTheme.typography.titleMedium)
+
+                reports.value.forEach { report ->
+
+                    val color = when (report.status) {
+                        "Under Review" -> Color(0xFFFFA000)
+                        "Resolved" -> Color(0xFF2E7D32)
+                        else -> MaterialTheme.colorScheme.primary
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        )
+                    ) {
+
+                        Column(Modifier.padding(14.dp)) {
+                            Text(report.issueType, fontWeight = FontWeight.Bold)
+                            Text(report.description)
+                            Text(report.status, color = color)
+                        }
+                    }
+                }
+            }
+
+            /* ✅ CONTACT CARD */
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+
+                    Text("MPKJ Contact", fontWeight = FontWeight.Bold)
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Phone, null)
+                        Spacer(Modifier.width(12.dp))
+                        Text("1-800-88-6755")
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Email, null)
+                        Spacer(Modifier.width(12.dp))
+                        Text("aduan@mpkj.gov.my")
                     }
                 }
             }
@@ -125,12 +279,15 @@ fun ScheduleScreen(viewModel: TrashViewModel) {
     }
 }
 
-/* PREVIEW */
+/* ✅ PREVIEW */
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun ScheduleScreenPreview() {
+fun PreviewSchedule() {
     A210986_SirNelson_Lab1Theme {
-        val viewModel: TrashViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
-        ScheduleScreen(viewModel)
+        val nav = rememberNavController()
+        val vm: TrashViewModel =
+            androidx.lifecycle.viewmodel.compose.viewModel()
+
+        ScheduleScreen(nav, vm)
     }
 }

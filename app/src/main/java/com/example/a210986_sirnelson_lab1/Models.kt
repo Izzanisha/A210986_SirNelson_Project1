@@ -26,3 +26,13 @@ data class ResidentInfo(
     val name: String,
     val place: String
 )
+
+// 🔔 Reminder info (for ReminderScreen)
+data class Reminder(
+    val type: String,
+    val date: String,
+    val time: String,
+    val area: String,
+    val enabled: Boolean = true,
+    val timings: List<String> = listOf("1 day before")   // ✅ changed from String to List<String>
+)

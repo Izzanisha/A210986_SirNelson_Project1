@@ -1,25 +1,30 @@
 package com.example.a210986_sirnelson_lab1
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.example.a210986_sirnelson_lab1.ui.theme.*
+import com.example.a210986_sirnelson_lab1.ui.theme.A210986_SirNelson_Lab1Theme
+import com.example.a210986_sirnelson_lab1.ui.theme.GreenPrimary
+import com.example.a210986_sirnelson_lab1.ui.theme.MPKJHeaderBar
 
+// ✅ Ensure this import is present
+import androidx.compose.material3.TextFieldDefaults
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrashTrackHome(navController: NavHostController, viewModel: TrashViewModel) {
     var userName by remember { mutableStateOf("") }
@@ -36,6 +41,7 @@ fun TrashTrackHome(navController: NavHostController, viewModel: TrashViewModel) 
     )
 
     Scaffold(
+        topBar = { MPKJHeaderBar(subtitle = "Home") },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = { BottomNavigationBar(navController) }
     ) { padding ->
@@ -44,8 +50,8 @@ fun TrashTrackHome(navController: NavHostController, viewModel: TrashViewModel) 
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(MaterialTheme.colorScheme.background) // ✅ pastel background
         ) {
-            // Background image
             Image(
                 painter = painterResource(id = R.drawable.trashbackground),
                 contentDescription = null,
@@ -57,37 +63,21 @@ fun TrashTrackHome(navController: NavHostController, viewModel: TrashViewModel) 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                /* HEADER */
-                Card {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.mpkj),
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text("Majlis Perbandaran Kajang (MPKJ)", fontWeight = FontWeight.Bold)
-                            Text("Trash Tracker App • Eco Reminder", fontSize = 12.sp)
-                        }
-                    }
-                }
-
                 /* WELCOME */
-                Card {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
                     Column(Modifier.padding(16.dp)) {
                         Text(
                             "Welcome back, ${if (userName.isBlank()) "Resident" else userName}!",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.headlineSmall
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -96,24 +86,30 @@ fun TrashTrackHome(navController: NavHostController, viewModel: TrashViewModel) 
                             value = userName,
                             onValueChange = { userName = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Your Name") },
+                            label = { Text("Your Name", style = MaterialTheme.typography.bodyMedium) },
                             leadingIcon = { Icon(Icons.Filled.Person, null) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                focusedBorderColor = GreenPrimary,
-                                unfocusedBorderColor = GreenPrimary,
-                                cursorColor = GreenPrimary
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedIndicatorColor = MaterialTheme.colorScheme.outline,
+                                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                cursorColor = MaterialTheme.colorScheme.primary
                             )
                         )
                     }
                 }
 
                 /* CHECK COLLECTION AREA */
-                Card {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("🗺 Check Collection Area", fontWeight = FontWeight.Bold)
+                        Text("🗺 Check Collection Area", style = MaterialTheme.typography.titleMedium)
 
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -121,15 +117,16 @@ fun TrashTrackHome(navController: NavHostController, viewModel: TrashViewModel) 
                             value = areaInput,
                             onValueChange = { areaInput = it },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Enter your area") },
+                            label = { Text("Enter your area", style = MaterialTheme.typography.bodyMedium) },
                             leadingIcon = { Icon(Icons.Filled.LocationOn, null) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent,
-                                focusedBorderColor = GreenPrimary,
-                                unfocusedBorderColor = GreenPrimary,
-                                cursorColor = GreenPrimary
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedIndicatorColor = MaterialTheme.colorScheme.outline,
+                                unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+                                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                cursorColor = MaterialTheme.colorScheme.primary
                             )
                         )
 
@@ -144,21 +141,20 @@ fun TrashTrackHome(navController: NavHostController, viewModel: TrashViewModel) 
                                         "This location is not currently covered by MPKJ."
                                     }
 
-                                // Save into ViewModel for other screens
                                 viewModel.setUserData(userName, areaInput)
-                                viewModel.setTrashInfo(areaInput, "Next Monday") // Example date
+                                viewModel.setTrashInfo(areaInput, "Next Monday")
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = GreenPrimary,
-                                contentColor = Color.White
+                                contentColor = MaterialTheme.colorScheme.onPrimary
                             )
                         ) {
-                            Text("Check Area")
+                            Text("Check Area", style = MaterialTheme.typography.labelLarge)
                         }
 
                         if (areaMessage.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(areaMessage)
+                            Text(areaMessage, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
@@ -170,17 +166,23 @@ fun TrashTrackHome(navController: NavHostController, viewModel: TrashViewModel) 
                 }
 
                 /* NEXT COLLECTION */
-                NextCollectionCard(snackbarHostState)
+                NextCollectionCard(snackbarHostState, viewModel)
 
                 /* DAILY ECO TIP */
-                Card {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Daily Garbage Hygiene Tips", fontWeight = FontWeight.Bold)
+                        Text("Daily Garbage Hygiene Tips", style = MaterialTheme.typography.titleMedium)
                         Text(
                             "• Tie garbage bags tightly\n" +
                                     "• Do not mix wet and dry waste\n" +
                                     "• Rinse bins regularly\n" +
-                                    "• Sprinkle baking soda to reduce odour"
+                                    "• Sprinkle baking soda to reduce odour",
+                            style = MaterialTheme.typography.bodyMedium
                         )
                     }
                 }

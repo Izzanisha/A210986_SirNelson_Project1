@@ -6,32 +6,36 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-import com.example.a210986_sirnelson_lab1.ui.theme.*
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.a210986_sirnelson_lab1.ui.theme.GreenPrimary
 
 /* ======================================================
-   NEXT COLLECTION CARD (TASK 3 + SHAPE MORPH)
+   ✅ NEXT COLLECTION CARD (FINAL POLISHED)
    ====================================================== */
-
 @Composable
 fun NextCollectionCard(
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    viewModel: TrashViewModel
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
 
-    /* SHAPE MORPH */
+    val trashInfo = viewModel.trashInfo.observeAsState()
+    var expanded by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
     val cornerRadius by animateDpAsState(
-        targetValue = if (expanded) 28.dp else 12.dp,
-        label = "CardCorner"
+        targetValue = if (expanded) 20.dp else 12.dp,
+        label = "corner"
     )
 
     Card(
@@ -40,70 +44,60 @@ fun NextCollectionCard(
             .clickable { expanded = !expanded }
             .animateContentSize(),
         shape = RoundedCornerShape(cornerRadius),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = GreenCard,
-            contentColor = GreenOnCard
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
+
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                /* FIXED ICON */
-                Icon(Icons.Filled.Delete, contentDescription = null)
-
-                Column {
-                    Text(
-                        text = "Next Collection",
-                        fontWeight = FontWeight.Bold,
-                        color = GreenPrimary
-                    )
-                    Text(
-                        text = "Friday, 17 April 2026",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+            /* ✅ HEADER */
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.DateRange, contentDescription = null) // ✅ FIXED
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Next Collection",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
+            /* ✅ CONTENT */
+            trashInfo.value?.let { info ->
+                Text("📍 ${info.area}")
+                Text("📅 ${info.nextCollectionDate}")
+            } ?: Text("No collection info yet")
+
+            /* ✅ EXPANDED CONTENT */
             if (expanded) {
 
-                /* ✅ FIXED DIVIDER */
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    color = GreenPrimary.copy(alpha = 0.4f)
-                )
+                HorizontalDivider()
+
+                Text("⏳ Reminder ready", fontWeight = FontWeight.Medium)
 
                 Text(
-                    text = "⏳ 4 days remaining",
-                    fontWeight = FontWeight.Medium
-                )
-
-                Text(
-                    text = "Please place your garbage bin in front of your house before 7:00 AM for MPKJ collection."
+                    "Keep your bin outside before 7:00 AM for collection.",
+                    style = MaterialTheme.typography.bodySmall
                 )
 
                 Button(
                     onClick = {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "✅ Reminder successfully set"
-                            )
+                        scope.launch {
+                            snackbarHostState.showSnackbar("✅ Reminder set successfully")
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = GreenPrimary,
-                        contentColor = Color.White
+                        containerColor = GreenPrimary
                     )
                 ) {
-                    Icon(Icons.Filled.Notifications, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
+                    Icon(Icons.Default.Notifications, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
                     Text("Set Reminder")
                 }
             }
@@ -112,46 +106,57 @@ fun NextCollectionCard(
 }
 
 /* ======================================================
-   BOTTOM NAVIGATION (ALL GREEN)
+   ✅ BOTTOM NAVIGATION BAR (FINAL CLEAN VERSION)
    ====================================================== */
-
 @Composable
-fun BottomNavigationBar() {
+fun BottomNavigationBar(navController: NavHostController) {
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
     NavigationBar(
-        containerColor = GreenCard,
+        containerColor = MaterialTheme.colorScheme.surface, // ✅ better UI
         tonalElevation = 4.dp
     ) {
 
         NavigationBarItem(
-            selected = true,
-            onClick = {},
-            icon = { Icon(Icons.Filled.Home, null) },
-            label = { Text("Home") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = GreenPrimary,
-                selectedTextColor = GreenPrimary,
-                indicatorColor = GreenPrimary.copy(alpha = 0.2f)
-            )
+            selected = currentRoute == "home",
+            onClick = {
+                navController.navigate("home") {
+                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
+            icon = { Icon(Icons.Default.Home, null) },
+            label = { Text("Home") }
         )
 
         NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = { Icon(Icons.Filled.List, null) },
+            selected = currentRoute == "schedule",
+            onClick = { navController.navigate("schedule") },
+            icon = { Icon(Icons.AutoMirrored.Filled.List, null) },
             label = { Text("Schedule") }
         )
 
         NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = { Icon(Icons.Filled.Warning, null) },
+            selected = currentRoute == "report",
+            onClick = { navController.navigate("report") },
+            icon = { Icon(Icons.Default.Warning, null) },
             label = { Text("Report") }
         )
 
         NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = { Icon(Icons.Filled.Person, null) },
+            selected = currentRoute == "reminder",
+            onClick = { navController.navigate("reminder") },
+            icon = { Icon(Icons.Default.Notifications, null) },
+            label = { Text("Reminder") }
+        )
+
+        NavigationBarItem(
+            selected = currentRoute == "profile",
+            onClick = { navController.navigate("profile") },
+            icon = { Icon(Icons.Default.Person, null) },
             label = { Text("Profile") }
         )
     }

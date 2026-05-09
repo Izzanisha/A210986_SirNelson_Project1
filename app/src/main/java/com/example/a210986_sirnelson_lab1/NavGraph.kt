@@ -11,23 +11,34 @@ fun AppNavGraph(navController: NavHostController, viewModel: TrashViewModel) {
         navController = navController,
         startDestination = "home"
     ) {
-        // Home Screen
+        // 🏠 Home Screen
         composable("home") {
             TrashTrackHome(navController, viewModel)
         }
-        // Schedule Screen
+
+        // 📅 Schedule Screen
         composable("schedule") {
-            ScheduleScreen(viewModel)
+            ScheduleScreen(navController, viewModel)
         }
 
-        // Report Screen
+        // 🚨 Report Screen
         composable("report") {
-            ReportScreen(viewModel)
+            ReportScreen(navController, viewModel)
         }
 
-        // Profile Screen
+        // 🔔 Reminder Screen
+        composable("reminder") {
+            ReminderScreen(navController, viewModel)
+        }
+
+        // 📜 Notification History Screen
+        composable("history") {
+            NotificationHistoryScreen(navController, viewModel)
+        }
+
+        // 👤 Profile Screen
         composable("profile") {
-            ProfileScreen(viewModel)
+            ProfileScreen(navController, viewModel)
         }
     }
 }
